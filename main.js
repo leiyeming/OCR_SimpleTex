@@ -1,49 +1,58 @@
 async function recognize(base64, lang, options) {
     const { config, utils } = options;
-    const { tauriFetch } = utils;
-    let { apikey, engine } = config;
-    base64 = `data:image/png;base64,${base64}`;
+    const { http } = utils;
+    const { fetch, Body } = http;
 
-    if (apikey === undefined || apikey.length === 0) {
-        throw "apikey not found";
+    // API endpoint for SimpleTex
+    const apiUrl = 'https://server.simpletex.cn/api/simpletex_ocr';
+
+    // Validate API key
+    const apiKey = config.apikey;
+    if (!apiKey) {
+        throw new Error('API Key is required');
     }
-    if (engine === undefined || engine.length === 0) {
-        engine = "1";
-    }
 
-    let res = await tauriFetch('https://api.ocr.space/parse/image', {
-        method: "POST",
-        header: {
-            apikey,
-            "content-type": "application/x-www-form-urlencoded"
-        },
-        body: {
-            type: "Form",
-            payload: {
-                base64Image: base64,
-                OCREngine: engine,
-                language: lang
-            }
-        }
-    })
+    // Prepare form data
+    const formData = new FormData();
+    
+    // Decode base64 image
+    const imageBuffer = Buffer.from(base64, 'base64');
+    formData.append('file', imageBuffer, {
+        filename: 'image.png',
+        contentType: 'image/png'
+    });
 
-    if (res.ok) {
-        const { result } = res.data;
-        const { ErrorMessage, ParsedResults } = result;
-        if (ErrorMessage) {
-            throw ErrorMessage;
+    // Optional: Set recognition mode (auto/document/formula)
+    formData.append('rec_mode', 'auto');
+
+    // Optional: Enable image rotation correction
+    formData.append('enable_img_rot', 'false');
+
+    try {
+        // Perform the API request
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                // Other necessary headers
+            },
+            body: formData
+        });
+
+        // Check if the request was successful
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        if (ParsedResults) {
-            let target = "";
-            for (let i in ParsedResults) {
-                const { ParsedText } = i;
-                target += ParsedText;
-            }
-            return target;
-        } else {
-            throw JSON.stringify(result);
-        }
-    } else {
-        throw JSON.stringify(res);
+
+        // Parse the response
+        const result = await response.json();
+
+        // Extract and return the recognized text
+        // The exact field may vary - you might need to adjust based on actual API response
+        return result.markdown || result.text || '';
+
+    } catch (error) {
+        console.error('SimpleTex OCR Recognition Error:', error);
+        throw error;
     }
 }
