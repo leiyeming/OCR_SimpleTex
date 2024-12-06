@@ -3,7 +3,7 @@
   "plugin_type": "recognize",
   "icon": "icon.png",
   "display": "SimpleTex",
-  "homepage": "https://github.com/yourusername/pot-app-recognize-plugin-simple-tex",
+  "homepage": "https://github.com/leiyeming/pot-app-recognize-plugin-OCR_SimpleTex",
   "needs": [
     {
       "key": "apikey",
